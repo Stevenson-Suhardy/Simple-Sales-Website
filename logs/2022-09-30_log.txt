@@ -1,0 +1,6 @@
+Sign-in success at 2022-09-30 11:02:01. User jdoe@durhamcollege.ca signed in.
+Sign-out success at 2022-09-30 11:02:06. User jdoe@durhamcollege.ca signed out.
+Sign-in success at 2022-09-30 11:02:55. User jdoe@durhamcollege.ca signed in.
+Sign-out success at 2022-09-30 11:03:01. User jdoe@durhamcollege.ca signed out.
+Sign-in success at 2022-09-30 11:23:30. User jdoe@durhamcollege.ca signed in.
+Sign-out success at 2022-09-30 11:24:07. User jdoe@durhamcollege.ca signed out.
