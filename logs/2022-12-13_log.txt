@@ -1,0 +1,4 @@
+2022-12-13 10:55:47	Email Sent.	 To: vensen.teng@gmail.com	Subject: Please reset your password
+
+Sign-in success at 2022-12-13 11:04:53. User jdoe@durhamcollege.ca signed in.
+Sign-out success at 2022-12-13 11:23:30. User jdoe@durhamcollege.ca signed out.

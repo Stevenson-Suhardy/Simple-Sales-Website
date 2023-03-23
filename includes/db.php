@@ -6,11 +6,13 @@ Webd3201
 */
 
 $conn = db_connect();
+echo $conn;
 // Pg prepare statements
 pg_prepare($conn, "call_insert", "INSERT INTO calls(ClientId, TimeOfCall) VALUES ($1, $2);");
-pg_prepare($conn, "select_all_calls_offset", "SELECT * FROM calls LIMIT $1 OFFSET $2");
+pg_prepare($conn, "select_all_calls_offset", "SELECT * FROM calls WHERE clientid = ANY($1) LIMIT $2 OFFSET $3");
 pg_prepare($conn, "select_all_calls", "SELECT * FROM calls");
 pg_prepare($conn, "user_select", 'SELECT * FROM users WHERE emailaddress = $1');
+pg_prepare($conn, "user_select_all", "SELECT * FROM users WHERE Enable = $1");
 pg_prepare($conn, "salesperson_insert", "INSERT INTO users(EmailAddress, Password, FirstName, LastName, PhoneExtension, LastAccess, EnrolDate, Enable, Type) VALUES ($1, crypt($2, gen_salt('bf')), $3, $4, $5, $6, $7, true, 's');");
 pg_prepare($conn, "select_client", "SELECT * FROM clients WHERE emailaddress = $1");
 pg_prepare($conn, "select_sales_people", "SELECT * FROM users WHERE Type = $1");
@@ -21,9 +23,13 @@ pg_prepare($conn, "select_client_id", "SELECT * FROM clients WHERE clientid = $1
 pg_prepare($conn, "user_update_password", "UPDATE users SET password = crypt($1, gen_salt('bf')) WHERE emailaddress = $2");
 pg_prepare($conn, "user_update_login_time", "UPDATE users SET lastaccess = '" . date("Y-m-d H:i:s") . "' WHERE emailaddress = $1");
 pg_prepare($conn, "sales_client_select_all", "SELECT emailaddress, firstname, lastname, phonenumber, extension, logopath FROM clients  WHERE salespersonid = $1 LIMIT $2 OFFSET $3");
+pg_prepare($conn, "select_related_sales_and_client", "SELECT * FROM clients WHERE salespersonid = $1");
 pg_prepare($conn, "client_select_all", "SELECT emailaddress, firstname, lastname, phonenumber, extension, logopath FROM clients LIMIT $1 OFFSET $2");
+pg_prepare($conn, "active_sales_people_select", "SELECT emailaddress, firstname, lastname, enable FROM users WHERE Type=$1 LIMIT $2 OFFSET $3");
 pg_prepare($conn, "select_all_clients", "SELECT * FROM clients");
 pg_prepare($conn, "update_logo_path", "UPDATE clients SET logopath = $1 WHERE clientid = $2");
+pg_prepare($conn, "user_count", "SELECT * FROM users WHERE Enable = $1");
+pg_prepare($conn, "update_active_user", "UPDATE users SET Enable = $1 WHERE emailaddress = $2");
 
 // Function to connect to the database
 function db_connect() {
@@ -52,24 +58,52 @@ function user_select($email) {
     }
 }
 
+function user_count($enabled) {
+    $conn = db_connect();
+    $result = pg_execute($conn, "user_count", [$enabled]);
+
+    return pg_num_rows($result);
+}
+
+function enabled_or_disabled_user_select_all($enabled) {
+    $conn = db_connect();
+    $user = [];
+    $result = pg_execute($conn, "user_select_all", [$enabled]);
+
+    if (pg_num_rows($result) > 0) {
+        for ($i = 0; $i < pg_num_rows($result); $i++) {
+            $user[$i] = pg_fetch_assoc($result, $i);
+        }
+        return $user;
+    }
+    else {
+        return $user;
+    }
+}
+
 // This function is used to authenticate the user and check to see if their email and password matches with the data on the database
 function user_authenticate($emailaddress, $plain_password) {
     // Using user_select to get details of the user
     $user = user_select($emailaddress);
-    // Verifies whether the password the user put in is equal to the password in the database.
-    $verify_password = password_verify($plain_password, $user['password']);
-    // If it returns true
-    if($verify_password) {
-        // Connect to the database
-        $conn = db_connect();
-        // Updates the user last access
-        $result = pg_execute($conn, "user_update_login_time", [$emailaddress]);
-        // Returns the associative array
-        return $user;
+    if ($user['enable'] == 't') {
+        // Verifies whether the password the user put in is equal to the password in the database.
+        $verify_password = password_verify($plain_password, $user['password']);
+        // If it returns true
+        if($verify_password) {
+            // Connect to the database
+            $conn = db_connect();
+            // Updates the user last access
+            $result = pg_execute($conn, "user_update_login_time", [$emailaddress]);
+            // Returns the associative array
+            return $user;
+        }
+        // Anything else
+        else{
+            // Returns false
+            return false;
+        }
     }
-    // Anything else
-    else{
-        // Returns false
+    else {
         return false;
     }
 }
@@ -397,6 +431,28 @@ function salespeople_select_all($page) {
     return $sales_people;
 }
 
+function active_sales_people_select($page) {
+    $conn = db_connect();
+    // Calculating offset
+    $offset = ($page - 1) * RECORDS_PER_PAGE;
+    // Executing query
+    $result = pg_execute($conn, "active_sales_people_select", ["s", RECORDS_PER_PAGE, $offset]);
+    // Creating an array variable
+    $sales_people = [];
+    // Storing the number of rows inside a variable
+    $total_result = pg_num_rows($result);
+    // Checks to see if the number of rows is more than 0
+    if ($total_result > 0) {
+        // Loops through the result
+        for ($i = 0; $i < $total_result; $i++) {
+            // Put the result in an associative array
+            $sales_people[$i] = pg_fetch_assoc($result, $i);
+        }
+    }
+    // return the associative array
+    return $sales_people;
+}
+
 // This function returns how many sales peopl there are inside the database
 function sales_people_count() {
     // Connect to the database
@@ -414,20 +470,48 @@ function call_select_all($page) {
     $conn = db_connect();
     // calculates offset
     $offset = ($page - 1) * RECORDS_PER_PAGE;
-    // Execute query
-    $result = pg_execute($conn, "select_all_calls_offset", [RECORDS_PER_PAGE, $offset]);
-    // Storing the number of rows inside a variable
-    $total_result = pg_num_rows($result);
     // Creating an array variable
     $calls = [];
+    $user = user_select($_SESSION['email']);
+    $sales_person_id = $user['id'];
+
+    $client_result = pg_execute($conn, "select_related_sales_and_client", [$sales_person_id]);
+    $client_ids = [];
+    for ($row_number = 0; $row_number < pg_num_rows($client_result); $row_number++) {
+        $client_ids[$row_number] = pg_fetch_assoc($client_result, $row_number)["clientid"];
+    }
+    
+    $counter = 0;
+    $str_client_ids = "{";
+    for ($i = 0; $i < sizeof($client_ids); $i++) {
+        if ($i == 0) {
+            $str_client_ids .= $client_ids[$i];
+        }
+        else {
+            $str_client_ids .= ", " . $client_ids[$i];
+        }
+    }
+    $str_client_ids .= "}";
+    // Execute query
+    $result = pg_execute($conn, "select_all_calls_offset", [$str_client_ids, RECORDS_PER_PAGE, $offset]);
+    
+    // Storing the number of rows inside a variable
+    $total_result = pg_num_rows($result);
     // Checks to see if the number of rows is more than 0
     if ($total_result > 0) {
         // Loops through the result
         for ($row_number = 0; $row_number < $total_result; $row_number++) {
+            $check_client = pg_execute($conn, "select_client_id", [pg_fetch_assoc($result, $row_number)['clientid']]);
             // Put the result in an associative array
-            $calls[$row_number] = pg_fetch_assoc($result, $row_number);
+            // TODO: Check is salespersonid in the clientid is the same as the current salespersonid
+            $client = pg_fetch_assoc($check_client, 0);
+            if ($client['salespersonid'] == $sales_person_id) {
+                $calls[$counter] = pg_fetch_assoc($result, $row_number);
+                $counter++;
+            }
         }
     }
+    
     // returns the associative array
     return $calls;
 }
@@ -436,10 +520,23 @@ function call_select_all($page) {
 function calls_count() {
     // Connect to database
     $conn = db_connect();
+    $user = user_select($_SESSION['email']);
+    $sales_person_id = $user['id'];
+    $client_result = pg_execute($conn, "select_related_sales_and_client", [$sales_person_id]);
+    $client_ids = [];
+    for ($row_number = 0; $row_number < pg_num_rows($client_result); $row_number++) {
+        $client_ids[$row_number] = pg_fetch_assoc($client_result, $row_number)["clientid"];
+    }
     // Executes query
     $result = pg_execute($conn, "select_all_calls", []);
+    $counter = 0;
+    for ($row_number = 0; $row_number < pg_num_rows($result); $row_number++) {
+        if (in_array(pg_fetch_assoc($result, $row_number)["clientid"], $client_ids)) {
+            $counter++;
+        }
+    }
     // returns the total number of rows
-    return pg_num_rows($result);
+    return $counter;
 }
 
 // This function updates the logo path for a client
@@ -449,6 +546,12 @@ function UpdateLogoPath($file_path, $client_id) {
     // executes the query
     $result = pg_execute($conn, "update_logo_path", [$file_path, $client_id]);
     // returns true
+    return true;
+}
+
+function activate_user($email, $enable) {
+    $conn = db_connect();
+    $result = pg_execute($conn, "update_active_user", [$enable, $email]);
     return true;
 }
 

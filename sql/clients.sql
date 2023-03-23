@@ -23,13 +23,14 @@ CREATE TABLE clients (
     CONSTRAINT fk_sales_person FOREIGN KEY(SalesPersonId) REFERENCES users(Id)
 );
 
-INSERT INTO clients(SalesPersonId, FirstName, LastName, EmailAddress, PhoneNumber, Extension) VALUES(
+INSERT INTO clients(SalesPersonId, FirstName, LastName, EmailAddress, PhoneNumber, Extension, LogoPath) VALUES(
     1000,
     'Jane',
     'Doe',
     'jane.doe@dcmail.ca',
     '9051112222',
-    NULL
+    NULL,
+    './uploads/client_logo1.jpeg'
 );
 
 INSERT INTO clients(SalesPersonId, FirstName, LastName, EmailAddress, PhoneNumber, Extension) VALUES(

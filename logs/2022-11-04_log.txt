@@ -1,3 +1,0 @@
-Sign-in success at 2022-11-04 10:24:04. User jdoe@durhamcollege.ca signed in.
-Sign-out success at 2022-11-04 12:02:18. User jdoe@durhamcollege.ca signed out.
-Sign-in success at 2022-11-04 12:02:22. User stevenson.suhardy@dcmail.ca signed in.

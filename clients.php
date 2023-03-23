@@ -265,9 +265,10 @@ echo display_table(
         "logo_path" => "Logo"
     ],
     client_select_all($page),
-    client_count(),
-    $page
+    []
 );
+// Display pagination
+echo display_pagination(client_count(), $page);
 ?>
 
 <?php

@@ -110,7 +110,7 @@ function display_form($form_data)
     foreach ($form_data as $data) {
         // Creates a HTML form
         $output .= "<div class=\"mb-3\">";
-        $output .= "<text>" . $data["label"] . "</text>";                               
+        $output .= "<p>" . $data["label"] . "</p>";                               
         $output .= "<label for=\"inputID\" class=\"sr-only\">" . $data["label"] . "</label>";
         $output .= "<input type=" . $data["type"] . " value='" . $data["value"] . "' name=" . $data["name"] . " id=\"inputID\" class=\"form-control\" placeholder='" . $data["label"] . "' required autofocus>";
         $output .= "</div>";
@@ -120,13 +120,20 @@ function display_form($form_data)
 }
 
 // This function will return a table based on the data passed in
-function display_table($table_data, $datas, $count, $page) {
+function display_table($table_data, $datas, $active) {
     // Creating an output variable to store the HTML table
     $output = "";
     $output = "<div class=\"table-responsive\">";
     $output .= "<table class=\"table table-striped table-sm\">";
     $output .= "<thead>";
     $output .= "<tr>";
+
+    if (sizeof($active) > 0) {
+        $radio = true;
+    }
+    else {
+        $radio = false;
+    }
 
     // Using foreach to loop through the table fields
     foreach($table_data as $data) {
@@ -137,29 +144,78 @@ function display_table($table_data, $datas, $count, $page) {
     $output .= "</tr>";
     $output .= "</thead>";
     $output .= "<tbody>";
-
     // Loops through the actual data field values to fill in the table
     foreach ($datas as $data=>$value) {
         $output .= "<tr>";
         // Storing all keys inside a variable
         $all_keys = array_keys($value);
         // Loops through the datas
-        for ($index = 0; $index < count($table_data); $index++) {
-            // If the key is not logo path
-            if ($all_keys[$index] != "logopath") {
-                // Put the actual data value inside the table
-                $output .= "<td>" . $value[$all_keys[$index]] . "</td>";
+        if ($radio == false) {
+            for ($index = 0; $index < count($table_data); $index++) {
+                // If the key is not logo path
+                if ($all_keys[$index] != "logopath") {
+                    // Put the actual data value inside the table
+                    $output .= "<td>" . $value[$all_keys[$index]] . "</td>";
+                }
+                // If the key is logopath
+                else if ($all_keys[$index] == "logopath") {
+                    // Generate the image based on the logo path
+                    $output .= "<td><img src=\"" . $value[$all_keys[$index]] . "\" alt=\"No Logo\" width=\"150\" /></td>";
+                }
             }
-            // If the key is logopath
-            else if ($all_keys[$index] == "logopath") {
-                // Generate the image based on the logo path
-                $output .= "<td><img src=\"" . $value[$all_keys[$index]] . "\" alt=\"No Logo\" width=\"150\" /></td>";
+        }
+        else {
+            for ($index = 0; $index < count($table_data); $index++) {
+                // If the key is not logo path
+                if ($all_keys[$index] != "enable") {
+                    // Put the actual data value inside the table
+                    $output .= "<td>" . $value[$all_keys[$index]] . "</td>";
+                }
+                else {
+                    $user = user_select($value[$all_keys[0]]);
+                    $active = $user['enable'];
+                    $output .= "<td> 
+            <form method='POST' action='" . $_SERVER["PHP_SELF"] . "'>";
+                    if ($active == 't') {
+                        $output .= "
+                        <div>
+                            <input type=\"radio\" name=\"active[" . $value[$all_keys[0]] . "]\" value=\"true\" checked>
+                            <label class=\"form-check-label\">Active</label>
+                        </div>
+                        <div>
+                            <input type=\"radio\" name=\"active[" . $value[$all_keys[0]] . "]\" value=\"false\">
+                            <label class=\"form-check-label\">Inactive</label>
+                        </div>";
+                    }
+                    else {
+                        $output .= "
+                        <div>
+                            <input type=\"radio\" name=\"active[" . $value[$all_keys[0]] . "]\" value=\"true\">
+                            <label class=\"form-check-label\">Active</label>
+                        </div>
+                        <div>
+                            <input type=\"radio\" name=\"active[" . $value[$all_keys[0]] . "]\" value=\"false\" checked>
+                            <label class=\"form-check-label\">Inactive</label>
+                        </div>";
+                    }
+            $output .= "
+            <input type=\"submit\" value=\"Update\" class=\"btn btn-info\" />
+            </form>
+            </td>";
+                }
             }
         }
         $output .= "</tr>";
     }
+
     $output .= "</tbody>";
     $output .= "</table>";
+    // Returns the HTML table along with the pagination
+    return $output;
+}
+
+function display_pagination($count, $page) {
+    $output = "";
 
     // Calculating the total page for the pagination and round it up just in case it is a floating point number
     $total_pages = ceil($count / RECORDS_PER_PAGE);
@@ -196,8 +252,17 @@ function display_table($table_data, $datas, $count, $page) {
 
     $output .= "</ul>";
     $output .= "</nav>";
-    // Returns the HTML table along with the pagination
     return $output;
+}
+
+// This function will log a mail after calling the mail function
+function logMail($email, $subject) {
+    // Opens the log and based on the date in append mode and put it in a variable 
+    $log = fopen('./logs/mail.log.txt', 'a');
+    // Writes the message to the log
+    fwrite($log, date('Y-m-d H:i:s') . "\tEmail Sent.\t To: $email\tSubject: $subject\n\n");
+    // Close the stream
+    fclose($log);
 }
 
 ?>

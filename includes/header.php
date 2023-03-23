@@ -6,10 +6,13 @@ Webd3201
 <!doctype html>
 <html lang="en">
     <?php
+        // Start a session if there is no session id
         if (session_id() == "") {
             session_start();
         }
+        // Start buffer
         ob_start();
+        // Require constants, db, and functions
         require("./includes/constants.php");
         require("./includes/db.php");
         require("./includes/functions.php");
@@ -39,6 +42,7 @@ Webd3201
 	
     </head>
     <body>
+    <!-- Check to see if they are logged in, if they are, display the header -->
     <?php if (isLoggedIn()): ?>
             <nav class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0">
             <a class="navbar-brand col-sm-3 col-md-2 mr-0" href="./index.php">Titan Link</a>

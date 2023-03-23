@@ -1,11 +1,13 @@
 <?php
+// Set the title of the page
 $title = "Dashboard";
-
+// Require the header
 require("./includes/header.php");
-
+// Check to see if the user is logged in or not
 unsignedRedirect();
 ?>    
 <h1 class="h2">Dashboard</h1>
+<!-- Check to see if the message is set or not -->
 <?php if(isset($message) && $message != "") {echo "<h5>".$message."</h5>";} ?>
 <div class="btn-toolbar mb-2 mb-md-0">
     <div class="btn-group mr-2">

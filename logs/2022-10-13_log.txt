@@ -1,6 +1,0 @@
-Sign-in success at 2022-10-13 09:45:13. User stevenson.suhardy@dcmail.ca signed in.
-Sign-out success at 2022-10-13 09:45:49. User stevenson.suhardy@dcmail.ca signed out.
-Sign-in success at 2022-10-13 09:45:52. User stevenson.suhardy@dcmail.ca signed in.
-Sign-out success at 2022-10-13 09:45:54. User stevenson.suhardy@dcmail.ca signed out.
-Sign-in success at 2022-10-13 09:45:59. User jdoe@durhamcollege.ca signed in.
-Sign-in success at 2022-10-13 10:24:25. User jdoe@durhamcollege.ca signed in.
